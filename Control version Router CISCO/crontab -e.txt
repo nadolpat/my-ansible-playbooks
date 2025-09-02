@@ -1,0 +1,7 @@
+>>>Check drift every 30 mins.
+
+*/30 * * * * /usr/bin/ansible-playbook -i /etc/ansible/inventory.yml /etc/ansible/playbooks/router_drift.yml >> /var/log/ansible_drift.log 2>&1
+
+>>> Backup every 1 AM.
+
+0 1 * * * /usr/bin/ansible-playbook -i /etc/ansible/inventory.yml /etc/ansible/playbooks/router_backup.yml >> /var/log/ansible_backup.log 2>&1

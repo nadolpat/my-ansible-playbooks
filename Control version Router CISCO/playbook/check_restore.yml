@@ -1,0 +1,27 @@
+- name: Check and Fix Router Drift
+  hosts: routers
+  gather_facts: no
+  tasks:
+    - name: Get current config
+      ios_command:
+        commands: show running-config
+      register: current_config
+
+    - name: Save current config to temp file
+      copy:
+        content: "{{ current_config.stdout[0] }}"
+        dest: "/tmp/{{ inventory_hostname }}-current-config.txt"
+
+    - name: Run diff against latest backup
+      command: diff /etc/ansible/backups/router/{{ inventory_hostname }}-latest-config.txt /tmp/{{ inventory_hostname }}-current-config.txt
+      register: diff_output
+      failed_when: false
+
+    - name: Show drift differences
+      debug:
+        msg: "{{ diff_output.stdout_lines }}"
+
+    - name: Restore config if drift detected
+      ios_config:
+        src: "/etc/ansible/backups/router/{{ inventory_hostname }}-latest-config.txt"
+      when: diff_output.stdout != ""

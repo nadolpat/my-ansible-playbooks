@@ -1,0 +1,44 @@
+---
+- name: Copy and set new IOS on Cisco Router
+  hosts: cisco_routers
+  gather_facts: no
+  connection: network_cli
+
+  vars:
+    tftp_server: "172.16.0.56"
+    ios_filename: "c1900-universalk9-mz.SPA.158-3.M7.bin"
+    flash_dest: "flash:"
+
+  tasks:
+    - name: Start copy IOS from TFTP
+      ansible.netcommon.cli_command:
+        command: "copy tftp://{{ tftp_server }}/{{ ios_filename }} {{ flash_dest }}"
+        prompt: "Destination filename"
+        answer: "{{ ios_filename }}"
+      vars:
+        ansible_command_timeout: 250
+
+    - name: Verify file exists on flash
+      ios_command:
+        commands:
+          - "dir {{ flash_dest }}"
+      register: flash_dir
+
+    - name: Show flash directory
+      debug:
+        var: flash_dir.stdout_lines
+
+    - name: Configure boot system to new IOS
+      ios_config:
+        lines:
+          - "boot system {{ flash_dest }}/{{ ios_filename }}"
+        save_when: always
+
+    - name: Reload device to use new IOS
+      ios_command:
+        commands:
+          - "reload"
+        prompt: "Proceed with reload"
+        answer: "y"
+      vars:
+        ansible_command_timeout: 600

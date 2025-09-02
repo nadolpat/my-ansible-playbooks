@@ -1,0 +1,19 @@
+- name: Backup Router Config
+  hosts: routers
+  gather_facts: no
+  tasks:
+    - name: Backup running-config from router
+      ios_command:
+        commands: show running-config
+      register: running_config
+
+    - name: Save backup with date and hostname
+      copy:
+        content: "{{ running_config.stdout[0] }}"
+        dest: "/etc/ansible/backups/router/{{ inventory_hostname }}-{{ lookup('pipe', 'date +%F') }}-config.txt"
+
+    - name: Update latest-config symlink for each router
+      file:
+        src: "/etc/ansible/backups/router/{{ inventory_hostname }}-{{ lookup('pipe', 'date +%F') }}-config.txt"
+        dest: "/etc/ansible/backups/router/{{ inventory_hostname }}-latest-config.txt"
+        state: link
